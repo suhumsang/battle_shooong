@@ -602,10 +602,6 @@
   .mailrow input:focus{outline:none;border-color:var(--ink)}
   .filebtns{display:flex;gap:8px;padding-top:2px}
   .sbtn{border:none;border-radius:14px;background:var(--btn-soft);color:var(--ink);font-size:13px;font-weight:800;cursor:pointer;padding:10px 16px}
-  .lvstep{display:flex;align-items:center;gap:8px}
-  .lvbtn{border:none;border-radius:12px;background:var(--btn-soft);color:var(--ink);font-size:18px;font-weight:900;cursor:pointer;width:40px;height:40px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
-  .lvbtn:active{background:var(--press)}
-  .lvval{min-width:56px;text-align:center;font-size:15px;font-weight:900;color:var(--ink);font-variant-numeric:tabular-nums}
   .sbtn.pri{background:var(--fill);color:var(--on-ink)}
   .sbtn:disabled{opacity:.4;cursor:default}
   .fname{font-size:12.5px;color:var(--ink-soft);font-weight:600;margin-top:9px;word-break:break-all}
@@ -988,12 +984,8 @@
       <div class="darknote">칠판 모드에서는 모든 테마가 공통 그린 배색으로 표시됩니다.</div>
     </div>
     <div class="setcard">
-      <div class="setrow" style="border-bottom:none"><div class="sl">플래시 속도 레벨<small>Lv1 느림 ~ Lv161 빠름 · 길게 누르면 연속 이동</small></div>
-        <div class="lvstep">
-          <button class="lvbtn" id="lvDn" aria-label="레벨 내리기">−</button>
-          <div class="lvval" id="lvVal">Lv1</div>
-          <button class="lvbtn" id="lvUp" aria-label="레벨 올리기">＋</button>
-        </div>
+      <div class="setrow" style="border-bottom:none"><div class="sl">플래시 속도<small>배틀 선택 화면의 속도와 같은 값</small></div>
+        <div class="seg3" id="segFlash"><button data-fl="81">보통</button><button data-fl="121">빠름</button><button data-fl="161">더 빠름</button></div>
       </div>
       <div class="fname" id="lvInfo"></div>
     </div>
@@ -1246,7 +1238,7 @@ var APP={
   nameEN:'Battle_shooong',         /* 파일명·전송 페이로드용 (영문 고정) */
   slug:'battle',           /* 저장키·파일명 접두어 (영문 소문자) */
   theme:'choco',            /* 기본 테마: choco|yellow|navy|mint|green */
-  ver:'V01.03',             /* 화면 우상단 버전 표기. 슈우웅 자체 버전 계보 — 구(nOpen) v0.5x 계보와 별개 (사용자 확정)
+  ver:'V01.05',             /* 화면 우상단 버전 표기. 슈우웅 자체 버전 계보 — 구(nOpen) v0.5x 계보와 별개 (사용자 확정)
                                ⚠ 소수점 뒤 = sw.js CACHE 'shooong-vNNN' 의 릴리스 번호 (사용자 확정 20260817).
                                  배포 반영 여부를 화면에서 눈으로 확인하려고 붙였다.
                                  릴리스마다 sw.js CACHE 와 이 값을 반드시 같이 올려라 — pwtest_c 가 불일치를 잡는다 */
@@ -1341,7 +1333,14 @@ var FLASH_REVEAL_MS=1300;/* 플래시 오답: 내답→정답 표시 시간 */
 var FLASH_REST_EVERY=2;  /* 플래시 2문제마다 휴식 (3항2→휴식→5항2 구조) */
 /* 플래시 161단계 레벨 (설계서 06): gap(Lv)=1.000-(Lv-1)×0.005 초, display=gap×2.
    Lv1=2000/1000ms, Lv161=400/200ms. 범위 밖은 기본값 방어 */
-var FLASH_LV_MIN=1,FLASH_LV_MAX=161,FLASH_LV_DEFAULT=1;
+var FLASH_LV_MIN=1,FLASH_LV_MAX=161,FLASH_LV_DEFAULT=81;
+/* V01.04 플래시 속도 3단계 (사용자 확정 20261004) — 설정 화면·배틀 선택 화면이 같은 flashLv 하나를 공유 */
+var FLASH_TIERS=[[81,'보통'],[121,'빠름'],[161,'더 빠름']];
+function flashTierLv(lv){ /* 구 레벨 → 가장 가까운 단계: 1~100 보통 · 101~140 빠름 · 141~161 더 빠름 */
+  if(typeof lv!=='number'||!isFinite(lv))return 81;
+  return lv<=100?81:(lv<=140?121:161);
+}
+function flashTierName(lv){for(var i=0;i<FLASH_TIERS.length;i++)if(FLASH_TIERS[i][0]===lv)return FLASH_TIERS[i][1];return '';}
 function flashTiming(lv){
   if(!(lv>=FLASH_LV_MIN&&lv<=FLASH_LV_MAX))lv=FLASH_LV_DEFAULT;
   var gap=Math.round((1.000-(lv-1)*0.005)*1000);
@@ -1359,7 +1358,7 @@ var CUTS={
   mul3x1:[90,100,110,120],  /* REFERENCE */      mul4x1:[210,240,270,300], /* REFERENCE */
   veda:[40,45,50,55],       /* ADJUSTED — D하한 60 되돌리기 금지 */
   tenseq:[45,50,55,60],     /* ESTIMATED */      uniteq:[45,50,55,60], /* ESTIMATED */
-  mul2x2:[210,240,270,300], /* REFERENCE */      fracCmp:[140,200,240,300], /* SCALED ×2 */
+  mul2x2:[210,240,270,300], /* REFERENCE */      sub3:[63,71,79,87],   /* ESTIMATED — sub2·sub4 기하평균 (사용자 확정 20261004) */      fracCmp:[140,200,240,300], /* SCALED ×2 */
   mulCmpA:[120,180,220,260],/* SCALED ×2 */      mulCmpB:[140,205,255,300], /* ESTIMATED A×1.15 */
   mulCmpC:[100,155,185,220] /* ESTIMATED A×0.85 */
 };
@@ -1505,7 +1504,7 @@ function comboGroup(p,sub){
   return (sub&&MULC_SUB_NAME[sub])||'곱셈 비교'; /* mulc. sub 없는 구 데이터는 포괄 라벨 */
 }
 /* 조합별 등급 컷: 각 문항의 (세트컷÷세트문항수) 평균 [S,A,B,C]초.
-   다항 2그룹은 COMBO_ORDER 에는 포함, COMBO_CUTS 에는 없음(시간 컷 없음 → 16그룹) */
+   다항 2그룹은 COMBO_ORDER 에는 포함, COMBO_CUTS 에는 없음(시간 컷 없음 → 17그룹: V01.04 뺄셈 3-3 보충 포함) */
 var COMBO_CUTS=null,COMBO_ORDER=null;
 function buildComboCuts(){
   if(COMBO_CUTS)return COMBO_CUTS;
@@ -1522,6 +1521,9 @@ function buildComboCuts(){
       }
     }
   }
+  /* V01.04: NDB 에 없는 생성 전용 난이도(sub3) — 조합 그룹 보충 (세트컷÷20) */
+  var gx=comboGroup({t:'sub',a:100,b:100});
+  if(!acc[gx]){acc[gx]={s:CUTS.sub3.map(function(v){return v/BATTLE_N;}),n:1};}
   COMBO_CUTS={};
   var keys=[];
   for(var k in acc){
@@ -1640,13 +1642,16 @@ function selfTest(){
   if(!(f81.display===1200&&f81.gap===600))errs.push('flashTiming Lv81');
   if(!(f161.display===400&&f161.gap===200))errs.push('flashTiming Lv161');
   var f0=flashTiming(0),f162=flashTiming(162),fx=flashTiming('x');
-  if(!(f0.display===2000&&f162.display===2000&&fx.display===2000))errs.push('flashTiming 범위 밖 방어');
+  if(!(f0.display===1200&&f162.display===1200&&fx.display===1200))errs.push('flashTiming 범위 밖 방어 (기본 Lv81)');
+  var f121=flashTiming(121);if(!(f121.display===800&&f121.gap===400))errs.push('flashTiming Lv121');
+  if(flashTierLv(1)!==81||flashTierLv(100)!==81||flashTierLv(101)!==121||flashTierLv(140)!==121||flashTierLv(141)!==161||flashTierLv(161)!==161||flashTierLv(undefined)!==81)errs.push('flashTierLv 매핑');
+  if(flashTierName(81)!=='보통'||flashTierName(121)!=='빠름'||flashTierName(161)!=='더 빠름'||flashTierName(80)!=='')errs.push('flashTierName');
   for(var fl=1;fl<=161;fl+=8)if(flashTiming(fl).gap%5!==0)errs.push('flashTiming 5ms 배수 Lv'+fl);
-  /* 조합 그룹: 18그룹 (다항 2 포함) · COMBO_CUTS 는 다항 제외 16그룹 */
+  /* 조합 그룹: 19그룹 (다항 2 포함, V01.04 뺄셈 3-3 추가) · COMBO_CUTS 는 다항 제외 17그룹 */
   buildComboCuts();
-  if(COMBO_ORDER.length!==18)errs.push('조합 그룹수 '+COMBO_ORDER.length);
+  if(COMBO_ORDER.length!==19)errs.push('조합 그룹수 '+COMBO_ORDER.length);
   var ccN=0;for(var ck in COMBO_CUTS)ccN++;
-  if(ccN!==16)errs.push('COMBO_CUTS 수 '+ccN);
+  if(ccN!==17)errs.push('COMBO_CUTS 수 '+ccN);
   if(COMBO_ORDER.indexOf('다항 3항')<0||COMBO_ORDER.indexOf('다항 5항')<0)errs.push('다항 그룹 누락');
   if(COMBO_CUTS['다항 3항']||COMBO_CUTS['다항 5항'])errs.push('다항 컷 존재');
   if(!(PLOG instanceof Array))errs.push('PLOG 형식');
@@ -1673,7 +1678,7 @@ var DBS=(function(){
     rk:{lv:0,ups:[]}                          /* 티어 승급 추적 (s07·s09 — 20260818). lv=0 은 미초기화 표식, ups=승급 ISO 목록 */
   };}
   function blank(){return {ver:4,done:{},cur:null,wrongLog:[],log:[],probLog:[],snaps:[],
-    flashLv:1,      /* 플래시 레벨 1~161 */
+    flashLv:81,     /* 플래시 속도 단계 81·121·161 (V01.04) */
     polyLog:[],     /* 미션별 다항 집계 {m,c3,c5,keep,g,lv,at} — 완주마다 append */
     gam:gamBlank()  /* 게이미피케이션 (기획 확정판 v1.0 10장) */
   };}
@@ -1700,7 +1705,7 @@ var DBS=(function(){
        flashLv 없으면 1, polyLog 없으면 []. cur 는 항상 null (이어풀기 폐지).
        pref{...} 필드는 그대로 보존. */
     var wasV4=(data.ver===4);
-    if(data.flashLv===undefined)data.flashLv=1;
+    data.flashLv=(data.flashLv===undefined)?81:flashTierLv(data.flashLv); /* V01.04: 3단계로 맞춤 */
     if(!data.polyLog)data.polyLog=[];
     data.cur=null;
     data.ver=4;
@@ -1759,7 +1764,7 @@ var BATTLE_N=20;   /* 액션·비교 한 판 문항 수 (기존 세트와 동일
 var BATTLE_TYPES=[ /* 종목 순서 = 화면 순서 */
   /* keys: [키, 표기명, 세그먼트 짧은 라벨] */
   {t:'add', name:'덧셈',    keys:[['add2','두 자리','2자리'],['add3','세 자리','3자리'],['add4','네 자리','4자리']]},
-  {t:'sub', name:'뺄셈',    keys:[['sub2','두 자리','2자리'],['sub4','네 자리','4자리']]},
+  {t:'sub', name:'뺄셈',    keys:[['sub2','두 자리','2자리'],['sub3','세 자리','3자리'],['sub4','네 자리','4자리']]},
   {t:'mul', name:'곱셈',    keys:[['mul2x1','두 자리×한 자리','2×1'],['mul3x1','세 자리×한 자리','3×1'],['mul4x1','네 자리×한 자리','4×1'],
                                  ['mul2x2','두 자리×두 자리','2×2'],['veda','베다','베다'],['tenseq','십등일합','십등일합'],['uniteq','일등십합','일등십합']]},
   {t:'poly',name:'플래시',  keys:[['poly','다항덧셈','다항']]},
@@ -1768,7 +1773,7 @@ var BATTLE_TYPES=[ /* 종목 순서 = 화면 순서 */
 ];
 /* 버킷 순번 고정 (가상 미션번호 = BATTLE_BASE+1+순번) — 순서 변경 금지: 과거 기록의 w 가 깨진다 */
 var BATTLE_KEYS=['add2','add3','add4','sub2','sub4','mul2x1','mul3x1','mul4x1','mul2x2','veda','tenseq','uniteq',
-  'poly','mulCmpA','mulCmpB','mulCmpC','fracCmp'];
+  'poly','mulCmpA','mulCmpB','mulCmpC','fracCmp','sub3']; /* sub3 = V01.04 신규 (맨 뒤 추가) */
 function battleKeyName(k){
   for(var i=0;i<BATTLE_TYPES.length;i++)for(var j=0;j<BATTLE_TYPES[i].keys.length;j++)
     if(BATTLE_TYPES[i].keys[j][0]===k){var T=BATTLE_TYPES[i];return T.keys.length>1?T.name+' '+T.keys[j][1]:T.name;}
@@ -1808,7 +1813,14 @@ function battleSet(w,seed){
   var ck=w+'-'+seed;
   if(_bCache[ck]&&_bPoolSrc===NDB)return _bCache[ck];
   var k=battleKeyOfW(w),P=battlePool(),b=P[k];
-  if(!k||!b)return null;
+  if(!k)return null;
+  if(GEN_KEYS[k]&&isGenSeed(seed)){ /* V01.04 매회 랜덤 생성 */
+    var gs={no:seed,cuts:k==='poly'?null:CUTS[k],ps:genBattle(k,mulberry32(seed-GEN_SEED_BASE)),bkey:k};
+    if(k==='poly')gs.sub='poly';else if(k==='mul2x2')gs.sub='plain';
+    _bCache[ck]=gs;
+    return gs;
+  }
+  if(!b)return null; /* 구(풀 추출) 시드: V01.03 이하 기록 재현용 */
   var rnd=mulberry32(seed),ps;
   if(k==='poly')ps=bSample(b.p3,2,rnd).concat(bSample(b.p5,2,rnd)); /* 기존 다항 세트 구성: 3항×2 → 5항×2 */
   else ps=bSample(b.ps,BATTLE_N,rnd);
@@ -1818,8 +1830,55 @@ function battleSet(w,seed){
   _bCache[ck]=st;
   return st;
 }
-function battleCount(k){var b=battlePool()[k];return b?(k==='poly'?b.p3.length+b.p5.length:b.ps.length):0;}
+function battleCount(k){if(GEN_KEYS[k])return Infinity;var b=battlePool()[k];return b?(k==='poly'?b.p3.length+b.p5.length:b.ps.length):0;}
 function newSeed(){return 1+Math.floor(Math.random()*2147483646);}
+/* ============ V01.04 연산 생성기 (사용자 확정 20261004) ============
+   덧셈·뺄셈·곱셈(베다·십등일합·일등십합 제외)·플래시 = 판마다 조건 안에서 랜덤 생성.
+   시드 구분: s > GEN_SEED_BASE → 생성기, 그 이하 → 구 풀 추출(V01.03 이하 기록이 같은 문제로 재현됨).
+   같은 시드 = 같은 문제 (오답장 {w,s,i} 재생성). 한 판 안 중복 없음(덧셈·곱셈은 순서 무시). */
+var GEN_SEED_BASE=2147483648;
+var GEN_KEYS={add2:1,add3:1,add4:1,sub2:1,sub3:1,sub4:1,mul2x1:1,mul3x1:1,mul4x1:1,mul2x2:1,poly:1};
+var BATTLE_POLY_N=5,POLY_TERMS=5,POLY_LO=30,POLY_HI=99; /* 플래시: 5항 × 5문항, 항 30~99 */
+function isGenSeed(s){return typeof s==='number'&&s>GEN_SEED_BASE;}
+function genSeed(){return GEN_SEED_BASE+newSeed();}
+function gInt(rnd,lo,hi){return lo+Math.floor(rnd()*(hi-lo+1));}
+function nCarry(a,b){var n=0,c=0;while(a>0||b>0){if(a%10+b%10+c>=10){n++;c=1;}else c=0;a=Math.floor(a/10);b=Math.floor(b/10);}return n;}
+function nBorrow(a,b){var n=0,c=0;while(a>0||b>0){if(a%10-b%10-c<0){n++;c=1;}else c=0;a=Math.floor(a/10);b=Math.floor(b/10);}return n;}
+function hasZero(n){return String(n).indexOf('0')>=0;}
+var GEN_RULE={ /* 자릿수 범위 · 받아올림/받아내림 (주 횟수, 그 확률, 보조 횟수) · 답 하한 */
+  add2:{lo:11,hi:99,  c:[2,0.70,1]}, add3:{lo:100,hi:999,  c:[2,0.70,3]}, add4:{lo:1000,hi:9999,c:[3,0.70,4]},
+  sub2:{lo:11,hi:99,  b:[1,1,1],min:11}, sub3:{lo:100,hi:999,b:[2,1,2],min:10}, sub4:{lo:1000,hi:9999,b:[2,0.65,3],min:100},
+  mul2x1:{lo:11,hi:99},mul3x1:{lo:100,hi:999},mul4x1:{lo:1000,hi:9999},mul2x2:{lo:11,hi:99,b2:true}
+};
+function genOne(k,rnd){
+  var R=GEN_RULE[k],a,b,i,want;
+  if(k==='poly'){var t=[],sum=0;for(i=0;i<POLY_TERMS;i++){t.push(gInt(rnd,POLY_LO,POLY_HI));sum+=t[i];}return {t:'poly',terms:t,ans:sum};}
+  if(R.c){ /* 덧셈: 일의 자리 받아올림 필수 + 받아올림 횟수 */
+    want=rnd()<R.c[1]?R.c[0]:R.c[2];
+    for(;;){a=gInt(rnd,R.lo,R.hi);b=gInt(rnd,R.lo,R.hi);
+      if(a%10+b%10>=10&&nCarry(a,b)===want)return {t:'add',a:a,b:b,ans:a+b};}
+  }
+  if(R.b){ /* 뺄셈: 큰 수 − 작은 수, 일의 자리 받아내림 필수 + 받아내림 횟수 + 답 하한 */
+    want=rnd()<R.b[1]?R.b[0]:R.b[2];
+    for(;;){a=gInt(rnd,R.lo,R.hi);b=gInt(rnd,R.lo,R.hi);
+      if(a<=b||a-b<R.min||a%10>=b%10||nBorrow(a,b)!==want)continue;
+      return {t:'sub',a:a,b:b,ans:a-b};}
+  }
+  /* 곱셈 */
+  for(;;){a=gInt(rnd,R.lo,R.hi);b=R.b2?gInt(rnd,11,99):gInt(rnd,2,9);
+    if(R.b2&&(hasZero(a)||hasZero(b)))continue;
+    return {t:'mul',a:a,b:b,ans:a*b};}
+}
+function genSig(p){
+  if(p.t==='poly')return p.terms.join(',');
+  if(p.t==='sub')return p.a+'-'+p.b;
+  return Math.min(p.a,p.b)+'_'+Math.max(p.a,p.b);
+}
+function genBattle(k,rnd){
+  var n=k==='poly'?BATTLE_POLY_N:BATTLE_N,ps=[],seen={},p,sg;
+  while(ps.length<n){p=genOne(k,rnd);sg=genSig(p);if(seen[sg])continue;seen[sg]=1;ps.push(p);}
+  return ps;
+}
 /* 가상 미션 객체: sets 는 빈 배열 (미션 진행·완주 로직은 배틀에 적용되지 않음) */
 var _bW={};
 function wodByNo(no){
@@ -2076,7 +2135,17 @@ var PREM={
   list:'keys.json',                                  /* 원격 키 목록 (같은 폴더 정적 파일). 탈퇴자 차단용 */
   keys:[   /* Battle_shooong 전용 — 슈우웅 키(DEV·B01·B02·A01~A20) 전부 제거, 키 완전 분리 (사용자 확정 20261004) */
     {id:'BTL01',h:'8afea5b353d85df22125305d9dfe792ba437af1422e5d0ce6f563bfd3da23e36'},   /* 사용자 키 (상시) */
-    {id:'BTL02',h:'fda60419402fa589a124cac5b871e554347318af1f80c0eff673b533e1609e41'}    /* 멤버 키 (상시, 20261004) */
+    {id:'BTL02',h:'fda60419402fa589a124cac5b871e554347318af1f80c0eff673b533e1609e41'},   /* 멤버 키 (상시, 20261004) */
+    {id:'BTL03',h:'2d4151188359eaa60678055e3912fd5a0c23a1beca3b58afef0d0d84c6528244'},   /* 멤버 키 (상시, 20261008) */
+    {id:'BTL04',h:'43ae19ab4574f0ad2223c06017a38502771b34e20031feb5203c863de19f9778'},   /* 멤버 키 (상시, 20261008) */
+    {id:'BTL05',h:'dad87420e9d5af88c0557a67b764ac3f16209629e32ee477714f96b76e48c474'},   /* 멤버 키 (상시, 20261008) */
+    {id:'BTL06',h:'110e11b36e857e42822146267261a6506958591f15a1c90dc47cea74faff97d1'},   /* 멤버 키 (상시, 20261008) */
+    {id:'BTL07',h:'25c74f4f306495d3e7826de71c3cf055851cd5ace56d4e317dc8d4b28b6073aa'},   /* 멤버 키 (상시, 20261008) */
+    {id:'BTL08',h:'2bce4563cce0027336e6d8c55629c9a0016a058b038266d593f90ff3528a839a'},   /* 멤버 키 (상시, 20261008) */
+    {id:'BTL09',h:'d64951a036ba19532b369c19e3803e69747fba345916a371243683c8ee4298c0'},   /* 멤버 키 (상시, 20261008) */
+    {id:'BTL10',h:'3a858ad498f024b56076bd81af133e4e7c6f60f007ef22ebf450c0c300e4564a'},   /* 멤버 키 (상시, 20261008) */
+    {id:'BTL11',h:'e8f463c8b360411dc235be6191ce1237194dd540e606553b5f3922c9edc7b15c'},   /* 멤버 키 (상시, 20261008) */
+    {id:'BTL12',h:'df48cdc43aa4fc434270a9f0a3f1cb80c92e7f9d83c456e019d5f198cf38580b'}   /* 멤버 키 (상시, 20261008) */
   ]
 };
 /* SHA-256 (순수 JS — WebCrypto 는 file:// 에서 막히므로 미사용. 오프라인 동작 유지) */
@@ -2330,31 +2399,24 @@ $('segSum').addEventListener('click',function(e){
   var b=e.target.closest('button');if(!b)return;
   var p=prefGet();p.sumh=(b.getAttribute('data-sum')==='h')?'h':'v';DBS.save();renderPref();buzz(8);
 });
-/* 플래시 속도 레벨 — 수동 스테퍼 (자동 승급/강등은 보류: 규칙 확정 시 setFlashLv 에만 붙이면 됨) */
+/* 플래시 속도 — 3단계 (V01.04, 161단계 스테퍼 폐지). 단계 값(81·121·161) 외에는 거부 */
 function setFlashLv(lv){
-  if(typeof lv!=='number'||!isFinite(lv)||Math.round(lv)!==lv)return false;
-  if(lv<FLASH_LV_MIN||lv>FLASH_LV_MAX)return false; /* 범위 밖 거부 */
+  if(!flashTierName(lv))return false;
   var d=DBS.get();d.flashLv=lv;DBS.save();
   renderFlashLv();
   return true;
 }
 function renderFlashLv(){
   var lv=DBS.get().flashLv,tm=flashTiming(lv);
-  $('lvVal').textContent='Lv'+lv;
+  var bs=$('segFlash').querySelectorAll('button');
+  for(var i=0;i<bs.length;i++)bs[i].classList.toggle('sel',+bs[i].getAttribute('data-fl')===lv);
   $('lvInfo').textContent='숫자 표시 '+(tm.display/1000).toFixed(2)+'초 · 간격 '+(tm.gap/1000).toFixed(2)+'초';
+  if(typeof renderPicker==='function'&&$('picker')&&!$('picker').classList.contains('hidden'))renderPicker(); /* 배틀 선택 화면 동기화 */
 }
-function wireLvBtn(id,delta){
-  var hold=0,rep=0;
-  function step(){setFlashLv(DBS.get().flashLv+delta);}
-  $(id).addEventListener('pointerdown',function(e){
-    e.preventDefault();buzz(8);step();
-    hold=setTimeout(function(){rep=setInterval(step,70);},450); /* 길게 누르면 연속 이동 */
-  });
-  ['pointerup','pointerleave','pointercancel'].forEach(function(ev){
-    $(id).addEventListener(ev,function(){clearTimeout(hold);clearInterval(rep);});
-  });
-}
-wireLvBtn('lvDn',-1);wireLvBtn('lvUp',1);
+$('segFlash').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  if(setFlashLv(+b.getAttribute('data-fl')))buzz(8);
+});
 renderFlashLv();
 /* ============ v032 연산 DB 업로드 (xlsx·tsv·csv) — 사용자 지시 20260901 ============
    설정>연산 데이터 가져오기: 파일 파싱 → 전수 검증(tools/tsv2ndb.py 와 동일 규칙 + selfTest 무결성)
@@ -2695,7 +2757,7 @@ function openBattle(k){
   show('picker');
 }
 function openPicker(){openBattle();} /* 구 호출부 호환 */
-function startBattle(k){startSet(battleWOf(k),newSeed());}
+function startBattle(k){startSet(battleWOf(k),GEN_KEYS[k]?genSeed():newSeed());}
 /* 종목 아이콘 (원 + 기호, currentColor) */
 var BT_ICON={
   add:'<path d="M15 9.5v11M9.5 15h11"/>',
@@ -2718,7 +2780,8 @@ function lvIcon(n){
 function battleSummary(k){
   var T=battleTypeOf(k),nm=k,i;
   for(i=0;i<T.keys.length;i++)if(T.keys[i][0]===k)nm=T.keys[i][1];
-  var n=k==='poly'?4:BATTLE_N;
+  var n=k==='poly'?BATTLE_POLY_N:BATTLE_N;
+  if(T.t==='poly')return T.name+' 5항 '+n+'문항 · '+flashTierName(DBS.get().flashLv);
   if(T.keys.length===1)return T.name+' '+n+'문항';
   if(T.t==='mulc')return nm+' '+T.name+' '+n+'문항';
   return nm+' '+T.name+' '+n+'문항';
@@ -2741,7 +2804,13 @@ function renderPicker(){
   })(bs[r]);
   T=battleTypeOf(pickK);
   var bh='';
-  if(T.keys.length>1){
+  if(T.t==='poly'){ /* 플래시: 난이도 줄 자리에 속도 3단계 (설정 화면과 같은 값) */
+    var fl=DBS.get().flashLv;
+    for(i=0;i<FLASH_TIERS.length;i++){
+      bh+='<button data-fl="'+FLASH_TIERS[i][0]+'" data-name="'+FLASH_TIERS[i][1]+'" aria-label="속도 '+FLASH_TIERS[i][1]+'"'+(FLASH_TIERS[i][0]===fl?' class="sel"':'')+'>'
+        +lvIcon(i+1)+'<span class="bl">'+FLASH_TIERS[i][1]+'</span></button>';
+    }
+  }else if(T.keys.length>1){
     for(i=0;i<T.keys.length;i++){
       var k=T.keys[i][0];
       bh+='<button data-k="'+k+'" data-name="'+T.keys[i][1]+'" aria-label="'+T.keys[i][1]+'"'+(k===pickK?' class="sel"':'')+'>'
@@ -2749,11 +2818,14 @@ function renderPicker(){
     }
   }
   $('lvGrid').innerHTML=bh;
-  $('lvGrid').style.display=bh?'':'none'; /* 단일 난이도 종목(플래시·분수비교)은 난이도 줄 없음 */
+  $('lvGrid').style.display=bh?'':'none'; /* 단일 난이도 종목(분수비교)은 난이도 줄 없음 · 플래시는 속도 줄 */
   $('bSum').textContent=battleSummary(pickK);
   var cs=$('lvGrid').children;
   for(var r2=0;r2<cs.length;r2++)(function(btn){
-    btn.addEventListener('click',function(){pickK=btn.getAttribute('data-k');renderPicker();});
+    btn.addEventListener('click',function(){
+      if(btn.hasAttribute('data-fl')){setFlashLv(+btn.getAttribute('data-fl'));renderPicker();return;}
+      pickK=btn.getAttribute('data-k');renderPicker();
+    });
   })(cs[r2]);
 }
 $('pickBack').addEventListener('click',function(){renderHome();show('home');});
@@ -3642,7 +3714,7 @@ function renderFlash(p){
   num.style.display='block';num.style.visibility='hidden';
   show('flash');
   var i=0,myPi=S.pi,myMode=S.mode,myRqi=S.rqi;
-  var tm=flashTiming(DBS.get().flashLv); /* 161단계 레벨 (설정 화면에서 수동 조절) */
+  var tm=flashTiming(DBS.get().flashLv); /* 3단계 속도 (설정·배틀 선택 화면 공유) */
   function alive(){return S.mode===myMode&&(myMode==='retry'?S.rqi===myRqi:S.pi===myPi)&&!$('flash').classList.contains('hidden');}
   function showNext(){
     if(!alive())return;
@@ -4577,7 +4649,7 @@ $('wrongCsv').addEventListener('click',function(){
 
 /* 테스트 훅 (Playwright 검증용 — 앱 동작에 영향 없음) */
 window.NPW={curProb:curProb,startSet:startSet,
-  startBattle:startBattle,openBattle:openBattle,battleSet:battleSet,battlePool:battlePool,battleWOf:battleWOf,battleCount:battleCount,wsLabel:wsLabel,BATTLE_TYPES:BATTLE_TYPES,BATTLE_KEYS:BATTLE_KEYS,isPolyLog:isPolyLog,wodByNo:wodByNo,setByNo:setByNo,locDate:locDate, /* 배틀 (20261004) */openSets:openSets,showResult:showResult,openPicker:openPicker,
+  startBattle:startBattle,openBattle:openBattle,genBattle:genBattle,genOne:genOne,nCarry:nCarry,nBorrow:nBorrow,isGenSeed:isGenSeed,GEN_SEED_BASE:GEN_SEED_BASE,GEN_KEYS:GEN_KEYS,mulberry32:mulberry32,battleSet:battleSet,battlePool:battlePool,battleWOf:battleWOf,battleCount:battleCount,wsLabel:wsLabel,BATTLE_TYPES:BATTLE_TYPES,BATTLE_KEYS:BATTLE_KEYS,isPolyLog:isPolyLog,wodByNo:wodByNo,setByNo:setByNo,locDate:locDate, /* 배틀 (20261004) */openSets:openSets,showResult:showResult,openPicker:openPicker,
   openGraph:openGraph,openCal:openCal,openCombo:openCombo,calcGrades:calcGrades,renderWod:renderWod,
   comboGroup:comboGroup,buildComboCuts:buildComboCuts,mulPattern:mulPattern,gradeOf:gradeOf,
   applyAccuracyGate:applyAccuracyGate,gradeByCuts:gradeByCuts,isCmpSet:isCmpSet,cmpScore:cmpScore,cmpScoreGrade:cmpScoreGrade,cmpValHTML:cmpValHTML,renderDaily:renderDaily,polyGrade:polyGrade,polyMissionStats:polyMissionStats,
